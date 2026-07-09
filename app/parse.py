@@ -79,7 +79,8 @@ AUTHOR_FIELDS = [field.name for field in fields(Author)]
 
 def get_all_quotes_and_authors() -> tuple[list[Quote], list[Author]]:
     quotes = []
-    authors_cache: dict[str, Author] = {}  # author url -> Author, avoids re-fetching
+    # author url -> Author, avoids re-fetching the same author page
+    authors_cache: dict[str, Author] = {}
 
     with requests.Session() as session:
         url = BASE_URL
@@ -90,10 +91,13 @@ def get_all_quotes_and_authors() -> tuple[list[Quote], list[Author]]:
             for quote_soup in soup.select(".quote"):
                 quotes.append(parse_single_quote(quote_soup))
 
-                author_url = urljoin(url, quote_soup.select_one(".author + a")["href"])
+                about_link = quote_soup.select_one(".author + a")
+                author_url = urljoin(url, about_link["href"])
                 if author_url not in authors_cache:
                     author_soup = get_soup(author_url, session)
-                    authors_cache[author_url] = parse_single_author(author_soup)
+                    authors_cache[author_url] = parse_single_author(
+                        author_soup
+                    )
 
             next_button = soup.select_one(".next a")
             url = urljoin(url, next_button["href"]) if next_button else None
